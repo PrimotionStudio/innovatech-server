@@ -1,0 +1,75 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Admin {
+  id String @id @default(uuid())
+  name String
+  email String @unique
+  password String
+}
+
+model User {
+  id String @id @default(uuid())
+  name String
+  class String
+  school String
+  guardianName String
+  guardianEmail String
+  guardianPhone String
+  datetime DateTime @default(now())
+}
+
+
+model Manifest {
+  id String @id @default(uuid())
+  name String
+  version String @unique
+  hash String
+  url String
+  appSize String
+  innovaiModelTagName String
+  innovaiModelSize String
+  innovaiModelHash String
+  active Boolean @default(false)
+  datetime DateTime @default(now())
+}
+
+model Course {
+  id String @id @default(uuid())
+  name String
+  description String
+  imageUrl String
+  lessons Lesson[]
+  practices Practice[]
+}
+
+model Lesson {
+  id String @id @default(uuid())
+  course Course @relation(fields: [courseId], references: [id])
+  courseId String
+  title String
+  summary String
+  content String
+  videoUrl String
+  videoSize String
+  videoHash String
+}
+
+model Practice {
+  id String @id @default(uuid())
+  course Course? @relation(fields: [courseId], references: [id])
+  courseId String?
+  title String
+  questions String
+}

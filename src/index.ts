@@ -8,6 +8,11 @@ import { rateLimiter } from "hono-rate-limiter";
 import { ApiError } from "./lib/errorHandler.js";
 import { Prisma } from "./generated/prisma/client.js";
 import { serve } from "@hono/node-server";
+import Auth from "./routes/auth.route.js";
+import Course from "./routes/course.route.js";
+import Manifest from "./routes/manifest.route.js";
+import Practice from "./routes/practice.route.js";
+import User from "./routes/user.route.js";
 
 const app = new Hono({ strict: false }).basePath("/api/v1");
 const isDev = process.env.NODE_ENV !== "production";
@@ -40,6 +45,12 @@ app.use(
 );
 
 app.get("/", (c) => c.json({ message: "Hello Innovatech!" }));
+
+app.route("/auth", Auth);
+app.route("/courses", Course);
+app.route("/manifests", Manifest);
+app.route("/practices", Practice);
+app.route("/users", User);
 
 app.onError((error, c) => {
   if (error instanceof ApiError) return c.json({ message: error.message }, 400);

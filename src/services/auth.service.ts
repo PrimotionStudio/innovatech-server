@@ -4,6 +4,7 @@ import { prisma } from "../lib/database.js";
 import { ApiError } from "../lib/errorHandler.js";
 import { hash, compare } from "bcryptjs";
 import { SignJWT } from "jose";
+import { getUserIdFromContext } from "../lib/utils.js";
 
 export const UserLogin = async (c: Context) => {
   const data = AdminSchema.pick({ email: true, password: true }).parse(
@@ -36,4 +37,11 @@ export const RegisterAdmin = async (c: Context) => {
     data: { ...data, password: hashed },
   });
   return c.json(admin, 201);
+};
+
+export const GetMe = async (c: Context) => {
+  const adminId = await getUserIdFromContext(c);
+  if (!adminId) throw new ApiError("Cannot find user", 401);
+  const admin = await prisma.admin.findUnique({ where: { id: adminId } });
+  return c.json(admin);
 };

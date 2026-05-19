@@ -9,7 +9,7 @@ import { AdminSchema, type AdminType } from "../lib/zod.js";
 
 const isDev = process.env.NODE_ENV !== "production";
 
-const AuthMiddleware = createMiddleware<{
+export const AuthMiddleware = createMiddleware<{
   Variables: { user: AdminType };
 }>(async (c: Context, next: Next) => {
   try {

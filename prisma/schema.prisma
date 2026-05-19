@@ -56,7 +56,7 @@ model Course {
 
 model Lesson {
   id String @id @default(uuid())
-  course Course @relation(fields: [courseId], references: [id])
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
   courseId String
   title String
   summary String
@@ -68,8 +68,8 @@ model Lesson {
 
 model Practice {
   id String @id @default(uuid())
-  course Course? @relation(fields: [courseId], references: [id])
+  course Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
   courseId String?
   title String
-  questions String
+  questions Json
 }

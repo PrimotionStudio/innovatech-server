@@ -1,10 +1,19 @@
 import type { Context } from "hono";
 import { prisma } from "../lib/database.js";
 import { ManifestSchema } from "../lib/zod.js";
+import { ApiError } from "../lib/errorHandler.js";
 
 export const GetManifests = async (c: Context) => {
   const manifests = await prisma.manifest.findMany();
   return c.json(manifests);
+};
+
+export const GetActiveManifest = async (c: Context) => {
+  const manifest = await prisma.manifest.findFirst({
+    where: { active: true },
+  });
+  if (!manifest) throw new ApiError("No active manifest", 404);
+  return c.json(manifest);
 };
 
 export const NewManifest = async (c: Context) => {

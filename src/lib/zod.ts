@@ -55,11 +55,18 @@ export const LessonBaseSchema = z.object({
 });
 export type LessonBaseType = z.infer<typeof LessonBaseSchema>;
 
+export const QuestionSchema = z.object({
+  question: z.string(),
+  options: z.array(z.string()),
+  correctAnswer: z.string(),
+  explanation: z.string(),
+});
+
 export const PracticeBaseSchema = z.object({
   id: z.string(),
-  courseId: z.string(),
+  courseId: z.string().optional(),
   title: z.string(),
-  questions: z.string(),
+  questions: z.array(QuestionSchema),
 });
 export type PracticeBaseType = z.infer<typeof PracticeBaseSchema>;
 

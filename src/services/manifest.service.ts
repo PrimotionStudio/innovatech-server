@@ -15,11 +15,11 @@ export const GetActiveManifest = async (c: Context) => {
   // if (!manifest) throw new ApiError("No active manifest", 404);
   // return c.json(manifest);
   return c.json({
-    id: "448b6494-999b-4313-bb48-c4fc020b39d9",
+    id: "448b6494-999b-4313-bb48-c4fc020b39f0",
     version: "v1.0.0",
     releaseNotes: "First release",
     downloadUrl:
-      "https://github.com/PrimotionStudio/innovatech-server/releases/download/v1.0.0/Innovatech_0.1.0_x64-setup.exe",
+      "https://github.com/PrimotionStudio/innovatech-server/releases/download/v1.1.0/Innovatech_0.1.0_x64-setup.exe",
     releaseDate: "2026-06-09T00:00:00Z",
   });
 };

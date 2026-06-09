@@ -19,7 +19,7 @@ export const GetActiveManifest = async (c: Context) => {
     version: "v1.0.0",
     releaseNotes: "First release",
     downloadUrl:
-      "https://github.com/PrimotionStudio/innovatech-desktop-full/releases/download/v1.0.0/Innovatech_0.1.0_x64-setup.exe",
+      "https://github.com/PrimotionStudio/innovatech-server/releases/download/v1.0.0/Innovatech_0.1.0_x64-setup.exe",
     releaseDate: "2026-06-09T00:00:00Z",
   });
 };

@@ -110,6 +110,7 @@ export const ManifestScalarFieldEnum = {
     innovaiModelTagName: 'innovaiModelTagName',
     innovaiModelSize: 'innovaiModelSize',
     innovaiModelHash: 'innovaiModelHash',
+    active: 'active',
     datetime: 'datetime'
 };
 export const CourseScalarFieldEnum = {
@@ -138,9 +139,17 @@ export const SortOrder = {
     asc: 'asc',
     desc: 'desc'
 };
+export const JsonNullValueInput = {
+    JsonNull: JsonNull
+};
 export const QueryMode = {
     default: 'default',
     insensitive: 'insensitive'
+};
+export const JsonNullValueFilter = {
+    DbNull: DbNull,
+    JsonNull: JsonNull,
+    AnyNull: AnyNull
 };
 export const NullsOrder = {
     first: 'first',

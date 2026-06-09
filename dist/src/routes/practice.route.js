@@ -1,0 +1,10 @@
+import { Hono } from "hono";
+import { DeletePractice, GetPractices, NewPractice, UpdatePractice, } from "../services/practice.service.js";
+import { AuthMiddleware } from "../middleware/auth.middleware.js";
+const Practice = new Hono();
+Practice.use(AuthMiddleware);
+Practice.get("/", GetPractices);
+Practice.post("/", NewPractice);
+Practice.patch("/:id", UpdatePractice);
+Practice.delete("/:id", DeletePractice);
+export default Practice;

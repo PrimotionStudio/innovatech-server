@@ -9,10 +9,10 @@ export const GetManifests = async (c: Context) => {
 };
 
 export const GetActiveManifest = async (c: Context) => {
-  const manifest = await prisma.manifest.findFirst({
-    where: { active: true },
-  });
-  if (!manifest) throw new ApiError("No active manifest", 404);
+  // const manifest = await prisma.manifest.findFirst({
+  //   where: { active: true },
+  // });
+  // if (!manifest) throw new ApiError("No active manifest", 404);
   // return c.json(manifest);
   return c.json({
     id: "448b6494-999b-4313-bb48-c4fc020b39d9",

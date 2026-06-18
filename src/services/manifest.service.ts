@@ -13,13 +13,7 @@ export const GetActiveManifest = async (c: Context) => {
     where: { active: true },
   });
   if (!manifest) throw new ApiError("No active manifest", 404);
-  return c.json({
-    id: manifest.id,
-    version: manifest.version,
-    releaseNotes: manifest.name,
-    downloadUrl: manifest.url,
-    releaseDate: manifest.datetime,
-  });
+  return c.json(manifest);
 };
 
 export const NewManifest = async (c: Context) => {

@@ -9,9 +9,9 @@ import { AuthMiddleware } from "../middleware/auth.middleware.js";
 
 const Practice = new Hono();
 
-Practice.use(AuthMiddleware);
-
 Practice.get("/", GetPractices);
+
+Practice.use(AuthMiddleware);
 
 Practice.post("/", NewPractice);
 

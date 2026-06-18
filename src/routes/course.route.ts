@@ -14,9 +14,11 @@ import { AuthMiddleware } from "../middleware/auth.middleware.js";
 
 const Course = new Hono();
 
-Course.use(AuthMiddleware);
-
 Course.get("/", GetCourses);
+
+Course.get("/:id/lessons", GetLessonsByCourseId);
+
+Course.use(AuthMiddleware);
 
 Course.get("/:id", GetCourse);
 
@@ -25,8 +27,6 @@ Course.post("/", NewCourse);
 Course.patch("/:id", UpdateCourse);
 
 Course.delete("/:id", DeleteCourse);
-
-Course.get("/:id/lessons", GetLessonsByCourseId);
 
 Course.post("/:id/lessons", NewLesson);
 

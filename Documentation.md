@@ -21,16 +21,30 @@ Base URL: **`/api/v1`**
 
 ## Authentication
 
-All endpoints except **Auth** and `GET /manifests/active` require a Bearer token.
+Most endpoints require a Bearer token obtained from `POST /api/v1/auth/login`.
 
 **Header format:**
 ```
 Authorization: Bearer <token>
 ```
 
-**Obtain a token:** `POST /api/v1/auth/login`
-
 Tokens expire in **5 hours**.
+
+### Public Endpoints
+
+The following endpoints do not require authentication:
+
+| Method | Path |
+|--------|------|
+| `POST` | `/auth/register` |
+| `POST` | `/auth/login` |
+| `GET` | `/auth/me`* |
+| `GET` | `/courses` |
+| `GET` | `/courses/:id/lessons` |
+| `GET` | `/practices` |
+| `GET` | `/manifests/active` |
+
+\* `GET /auth/me` reads the JWT from the `Authorization` header but has no separate auth middleware.
 
 ---
 
@@ -98,7 +112,7 @@ Authenticate and receive a JWT token.
 
 ### `GET /api/v1/auth/me`
 
-Get the currently authenticated admin's profile. Requires a valid token in the `Authorization` header (no separate auth middleware, but the token is read from the header).
+Get the currently authenticated admin's profile. Reads the JWT from the `Authorization` header directly; no separate auth middleware is applied.
 
 **Response** `200 OK`:
 ```json
@@ -114,9 +128,9 @@ Get the currently authenticated admin's profile. Requires a valid token in the `
 
 ## Course Endpoints
 
-All course endpoints require authentication. Supports `?include` query parameter.
+Supports the `?include` query parameter. **`GET /courses` is public**; all other course endpoints require authentication.
 
-### `GET /api/v1/courses`
+### `GET /api/v1/courses` *(public)*
 
 List all courses.
 
@@ -168,7 +182,7 @@ List all courses.
 
 ### `GET /api/v1/courses/:id`
 
-Get a single course by ID.
+Get a single course by ID. Requires authentication.
 
 **Response** `200 OK` *(without `?include`)*:
 ```json
@@ -184,7 +198,7 @@ Get a single course by ID.
 
 ### `POST /api/v1/courses`
 
-Create a new course.
+Create a new course. Requires authentication.
 
 **Request Body:**
 ```json
@@ -209,7 +223,7 @@ Create a new course.
 
 ### `PATCH /api/v1/courses/:id`
 
-Update an existing course. All fields are optional.
+Update an existing course. All fields are optional. Requires authentication.
 
 **Request Body:**
 ```json
@@ -233,7 +247,7 @@ Update an existing course. All fields are optional.
 
 ### `DELETE /api/v1/courses/:id`
 
-Delete a course. Cascades to its lessons and practices.
+Delete a course. Cascades to its lessons and practices. Requires authentication.
 
 **Response** `200 OK`:
 ```json
@@ -246,11 +260,13 @@ Delete a course. Cascades to its lessons and practices.
 
 ## Lesson Endpoints
 
-All lesson endpoints require authentication. Supports `?include` query parameter.
+**`GET /courses/:id/lessons` is public**; all other lesson endpoints require authentication. Supports `?include` query parameter.
 
-### `GET /api/v1/courses/:id/lessons`
+The `:id` segment in the URL represents the **course ID** for `GET` and `POST`, but represents the **lesson ID** for `PATCH` and `DELETE`.
 
-Get all lessons for a course.
+### `GET /api/v1/courses/:id/lessons` *(public)*
+
+Get all lessons for a course. `:id` is the course ID.
 
 **Response** `200 OK` *(without `?include`)*:
 ```json
@@ -294,7 +310,7 @@ Get all lessons for a course.
 
 ### `POST /api/v1/courses/:id/lessons`
 
-Create a lesson under a course.
+Create a lesson under a course. `:id` is the course ID.
 
 **Request Body:**
 ```json
@@ -327,12 +343,11 @@ Create a lesson under a course.
 
 ### `PATCH /api/v1/courses/:id/lessons`
 
-Update a lesson. Requires `id` in the request body to identify the lesson.
+Update a lesson. `:id` is the **lesson ID**. All lesson fields in the request body are optional.
 
 **Request Body:**
 ```json
 {
-  "id": "l1m2n3o4-...",
   "title": "Updated Lesson Title",
   "summary": "Updated summary."
 }
@@ -356,14 +371,7 @@ Update a lesson. Requires `id` in the request body to identify the lesson.
 
 ### `DELETE /api/v1/courses/:id/lessons`
 
-Delete a lesson. Requires `id` in the request body.
-
-**Request Body:**
-```json
-{
-  "id": "l1m2n3o4-..."
-}
-```
+Delete a lesson. `:id` is the **lesson ID**.
 
 **Response** `200 OK`:
 ```json
@@ -376,9 +384,9 @@ Delete a lesson. Requires `id` in the request body.
 
 ## Practice Endpoints
 
-All practice endpoints require authentication. Supports `?include` query parameter.
+Supports `?include` query parameter. **`GET /practices` is public**; all other practice endpoints require authentication.
 
-### `GET /api/v1/practices`
+### `GET /api/v1/practices` *(public)*
 
 List all practices.
 
@@ -407,7 +415,7 @@ List all practices.
 
 ### `POST /api/v1/practices`
 
-Create a new practice with questions. `courseId` is optional (omit for standalone practices).
+Create a new practice with questions. `courseId` is optional (omit for standalone practices). Requires authentication.
 
 **Request Body:**
 ```json
@@ -445,7 +453,7 @@ Create a new practice with questions. `courseId` is optional (omit for standalon
 
 ### `PATCH /api/v1/practices/:id`
 
-Update a practice.
+Update a practice. Requires authentication.
 
 **Request Body:**
 ```json
@@ -476,7 +484,7 @@ Update a practice.
 
 ### `DELETE /api/v1/practices/:id`
 
-Delete a practice.
+Delete a practice. Requires authentication.
 
 **Response** `200 OK`:
 ```json
@@ -495,24 +503,26 @@ Manifests represent deployable application versions with AI model metadata.
 
 ### `GET /api/v1/manifests/active` *(public)*
 
-Get the currently active manifest.
+Get the currently active manifest. Returns a simplified response with renamed fields.
 
 **Response** `200 OK`:
 ```json
 {
   "id": "m1n2o3p4-...",
-  "name": "Innovatech App v2.1.0",
   "version": "2.1.0",
-  "hash": "sha256:abc123def456...",
-  "url": "https://releases.example.com/innovatech-v2.1.0.apk",
-  "appSize": "52428800",
-  "innovaiModelTagName": "v1.0.0",
-  "innovaiModelSize": "104857600",
-  "innovaiModelHash": "sha256:xyz789...",
-  "active": true,
-  "datetime": "2026-05-19T12:00:00.000Z"
+  "releaseNotes": "Innovatech App v2.1.0",
+  "downloadUrl": "https://releases.example.com/innovatech-v2.1.0.apk",
+  "releaseDate": "2026-05-19T12:00:00.000Z"
 }
 ```
+
+| Response Field | Source |
+|----------------|--------|
+| `id` | `manifest.id` |
+| `version` | `manifest.version` |
+| `releaseNotes` | `manifest.name` |
+| `downloadUrl` | `manifest.url` |
+| `releaseDate` | `manifest.datetime` |
 
 **Error** `404 Not Found`:
 ```json
@@ -525,7 +535,7 @@ Get the currently active manifest.
 
 ### `GET /api/v1/manifests`
 
-List all manifests.
+List all manifests. Requires authentication.
 
 **Response** `200 OK`:
 ```json
@@ -550,7 +560,7 @@ List all manifests.
 
 ### `POST /api/v1/manifests`
 
-Create a new manifest.
+Create a new manifest. Requires authentication.
 
 **Request Body:**
 ```json
@@ -587,7 +597,7 @@ Create a new manifest.
 
 ### `PATCH /api/v1/manifests/:id`
 
-Activate a manifest. Automatically deactivates all other manifests.
+Activate a manifest. Automatically deactivates all other manifests. Requires authentication.
 
 **Response** `200 OK`:
 ```json
@@ -610,7 +620,7 @@ Activate a manifest. Automatically deactivates all other manifests.
 
 ### `DELETE /api/v1/manifests/:id`
 
-Delete a manifest.
+Delete a manifest. Requires authentication.
 
 **Response** `200 OK`:
 ```json
@@ -623,11 +633,9 @@ Delete a manifest.
 
 ## User Endpoints
 
-All user endpoints require authentication.
-
 ### `GET /api/v1/users`
 
-Retrieve all registered users.
+Retrieve all registered users. Requires authentication.
 
 **Response** `200 OK`:
 ```json
@@ -651,7 +659,7 @@ Retrieve all registered users.
 
 ### `?include` (Eager-loading)
 
-Courses, lessons, and practices support eager-loading of related records.
+Courses, lessons, and practices support eager-loading of related records via the `?include` query parameter.
 
 | Value | Description |
 |-------|-------------|
@@ -667,13 +675,9 @@ GET /api/v1/courses/:id/lessons?include=course
 GET /api/v1/practices?include=course
 ```
 
-### `?where` (Filtering)
+### `?where` and `?search`
 
-JSON-encoded filter conditions for Prisma queries.
-
-### `?search` (Full-text search)
-
-Adds case-insensitive partial matching on string fields in the `where` filter.
+Utility functions exist in the codebase to parse JSON-encoded `?where` filters and `?search` full-text queries into Prisma conditions, but these are **not currently wired into any endpoint**. They are available for future use.
 
 ---
 
@@ -692,12 +696,12 @@ Standard error response format:
 |------|---------|
 | `200` | Success |
 | `201` | Created |
-| `400` | Bad request / validation error |
+| `400` | Bad request / validation error / ApiError |
 | `401` | Unauthorized (missing or invalid token) |
 | `403` | Forbidden (invalid token payload) |
 | `404` | Resource not found |
 | `409` | Conflict (duplicate record) |
-| `500` | Internal server error |
+| `500` | Internal server error / database connection failure |
 
 ### Prisma Error Code Mapping
 
@@ -707,11 +711,14 @@ Standard error response format:
 | `P2025` / `P2001` | `404` | Resource not found. |
 | `P2003` | `400` | Invalid reference. Related record does not exist. |
 | `P2011` / `P2012` | `400` | Missing required data. |
+| *(validation)* | `400` | Invalid data sent to database. |
+| *(initialization)* | `500` | Database connection failed. |
 
 ---
 
 ## Rate Limiting
 
+- **Library:** `hono-rate-limiter`
 - **Window:** 60 seconds
 - **Limit:** 100 requests per window
 - **Keyed by:** `Authorization` header value (or `"anonymous"` for unauthenticated requests)
@@ -724,18 +731,17 @@ Standard error response format:
 |--------|------|------|-------------|
 | `POST` | `/auth/register` | — | Register new admin |
 | `POST` | `/auth/login` | — | Login, get JWT |
-| `GET` | `/auth/me` | — | Get current admin profile |
-| `GET` | `/users` | Yes | List all users |
-| `GET` | `/courses` | Yes | List courses |
+| `GET` | `/auth/me` | —* | Get current admin profile |
+| `GET` | `/courses` | — | List courses |
 | `GET` | `/courses/:id` | Yes | Get course by ID |
 | `POST` | `/courses` | Yes | Create course |
 | `PATCH` | `/courses/:id` | Yes | Update course |
 | `DELETE` | `/courses/:id` | Yes | Delete course |
-| `GET` | `/courses/:id/lessons` | Yes | Get lessons by course |
-| `POST` | `/courses/:id/lessons` | Yes | Create lesson |
-| `PATCH` | `/courses/:id/lessons` | Yes | Update lesson |
-| `DELETE` | `/courses/:id/lessons` | Yes | Delete lesson |
-| `GET` | `/practices` | Yes | List practices |
+| `GET` | `/courses/:id/lessons` | — | Get lessons by course ID |
+| `POST` | `/courses/:id/lessons` | Yes | Create lesson under course |
+| `PATCH` | `/courses/:id/lessons` | Yes | Update lesson by lesson ID |
+| `DELETE` | `/courses/:id/lessons` | Yes | Delete lesson by lesson ID |
+| `GET` | `/practices` | — | List practices |
 | `POST` | `/practices` | Yes | Create practice |
 | `PATCH` | `/practices/:id` | Yes | Update practice |
 | `DELETE` | `/practices/:id` | Yes | Delete practice |
@@ -744,3 +750,8 @@ Standard error response format:
 | `POST` | `/manifests` | Yes | Create manifest |
 | `PATCH` | `/manifests/:id` | Yes | Activate manifest |
 | `DELETE` | `/manifests/:id` | Yes | Delete manifest |
+| `GET` | `/users` | Yes | List all users |
+
+\* `GET /auth/me` requires a token but has no formal auth middleware.
+\* `GET /courses` and `GET /courses/:id/lessons` return all records without restriction.
+\* `GET /practices` returns all records without restriction.

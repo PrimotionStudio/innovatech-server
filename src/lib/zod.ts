@@ -26,9 +26,9 @@ export const ManifestSchema = z.object({
   version: z.string(),
   hash: z.string(),
   url: z.string(),
-  appSize: z.string(),
+  appSize: z.coerce.string(),
   innovaiModelTagName: z.string(),
-  innovaiModelSize: z.string(),
+  innovaiModelSize: z.coerce.string(),
   innovaiModelHash: z.string(),
   active: z.boolean(),
   datetime: z.coerce.date(),
@@ -92,7 +92,6 @@ export const LessonSchema: z.ZodType<LessonType> = LessonBaseSchema.extend({
   course: z.lazy(() => CourseSchema),
 });
 
-export const PracticeSchema: z.ZodType<PracticeType> =
-  PracticeBaseSchema.extend({
-    course: z.lazy(() => CourseSchema),
-  });
+export const PracticeSchema: z.ZodType<PracticeType> = PracticeBaseSchema.extend({
+  course: z.lazy(() => CourseSchema),
+});

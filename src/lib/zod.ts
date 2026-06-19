@@ -30,7 +30,7 @@ export const ManifestSchema = z.object({
   innovaiModelTagName: z.string(),
   innovaiModelSize: z.coerce.string(),
   innovaiModelHash: z.string(),
-  active: z.boolean(),
+  active: z.boolean().default(false),
   datetime: z.coerce.date(),
 });
 export type ManifestType = z.infer<typeof ManifestSchema>;

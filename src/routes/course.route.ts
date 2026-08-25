@@ -7,6 +7,7 @@ import {
   GetLessonsByCourseId,
   NewCourse,
   NewLesson,
+  PublishCourse,
   UpdateCourse,
   UpdateLesson,
 } from "../services/course.service.js";
@@ -33,5 +34,7 @@ Course.post("/:id/lessons", NewLesson);
 Course.patch("/:id/lessons", UpdateLesson);
 
 Course.delete("/:id/lessons", DeleteLesson);
+
+Course.patch("/:id/publish", PublishCourse);
 
 export default Course;

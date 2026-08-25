@@ -45,11 +45,37 @@ model Manifest {
   datetime DateTime @default(now())
 }
 
+/// Courses split into two families across the whole product: technology and
+/// digital skills, versus school and examination subjects. One course model with
+/// a category rather than two parallel hierarchies, because everything else
+/// (versioning, distribution, sync) is identical between them.
+enum CourseCategory {
+  DIGITAL
+  ACADEMIC
+}
+
 model Course {
   id String @id @default(uuid())
   name String
   description String
   imageUrl String
+  category CourseCategory @default(ACADEMIC)
+
+  /// Bumped whenever the content a device would have to download changes.
+  /// Devices compare this against what they have installed, which is what makes
+  /// synchronisation incremental instead of "download everything every time".
+  version Int @default(1)
+
+  /// Unpublished courses never appear in a device manifest, so a content manager
+  /// can build one up over several sittings without half of it shipping.
+  published Boolean @default(false)
+
+  /// Whether eligible devices should fetch this without being asked. The
+  /// device-targeting story is deliberately left open: today this means all
+  /// devices, and the schema does not prevent per-device assignment later.
+  autoDownload Boolean @default(false)
+
+  updatedAt DateTime @updatedAt @default(now())
   lessons Lesson[]
   practices Practice[]
 }
@@ -64,6 +90,11 @@ model Lesson {
   videoUrl String
   videoSize String
   videoHash String
+
+  /// Lessons version independently of their course so a single corrected video
+  /// does not force every device to re-download the whole course.
+  version Int @default(1)
+  updatedAt DateTime @updatedAt @default(now())
 }
 
 model Practice {
@@ -72,4 +103,84 @@ model Practice {
   courseId String?
   title String
   questions Json
+
+  version Int @default(1)
+  updatedAt DateTime @updatedAt @default(now())
+}
+
+
+/// A single installation of Kotlead Desktop.
+///
+/// Identity is a generated public id plus a secret the server only ever stores
+/// hashed. A device id on its own is not a credential: it travels in logs and
+/// support tickets, and anyone who learned one could otherwise impersonate that
+/// machine and read whatever it was assigned.
+model Device {
+  id String @id @default(uuid())
+
+  /// Public identifier, safe to display in the Control Centre and quote in a
+  /// support conversation. Shaped KTL-XXXXXXXX.
+  deviceId String @unique
+
+  /// bcrypt of the secret handed back exactly once at registration. Never
+  /// recoverable; a machine that loses it has to re-register.
+  secretHash String
+
+  /// Optional and deliberately shallow. Enough to tell two school laptops apart
+  /// and to answer "is this one out of date", and no more than that.
+  label String?
+  platform String?
+  osVersion String?
+  appVersion String?
+
+  status DeviceStatus @default(ACTIVE)
+  lastSeenAt DateTime?
+  registeredAt DateTime @default(now())
+
+  syncStates DeviceSyncState[]
+
+  @@index([status])
+  @@index([lastSeenAt])
+}
+
+enum DeviceStatus {
+  ACTIVE
+  /// Refused at the door. Its credentials still exist, so this is reversible.
+  BLOCKED
+  /// Decommissioned. Kept for the record rather than deleted, so history and
+  /// counts stay honest.
+  RETIRED
+}
+
+/// What a device reports it actually has installed.
+///
+/// Kept apart from the manifest on purpose. The manifest is what a device
+/// *should* have and is derived from published content; this is what it *says*
+/// it has. Comparing the two is what makes "needs update" and "sync failed"
+/// answerable in the Control Centre.
+model DeviceSyncState {
+  id String @id @default(uuid())
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  deviceId String
+
+  /// "course", "cbt", "model" or "app". A string rather than an enum so a new
+  /// kind of downloadable resource does not need a migration on this table.
+  resourceType String
+  resourceId String
+
+  installedVersion Int
+  status SyncStatus @default(OK)
+  /// Failure detail, so the Control Centre can show why rather than only that.
+  message String?
+
+  updatedAt DateTime @updatedAt @default(now())
+
+  @@unique([deviceId, resourceType, resourceId])
+  @@index([status])
+}
+
+enum SyncStatus {
+  OK
+  PENDING
+  FAILED
 }

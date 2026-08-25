@@ -95,3 +95,64 @@ export const LessonSchema: z.ZodType<LessonType> = LessonBaseSchema.extend({
 export const PracticeSchema: z.ZodType<PracticeType> = PracticeBaseSchema.extend({
   course: z.lazy(() => CourseSchema),
 });
+
+/**
+ * Everything a device may tell us about itself.
+ *
+ * All optional, and deliberately shallow. Section 14 asks for a stable identity
+ * without collecting invasive hardware detail, so there is no serial number, no
+ * MAC address and no user name here. This is enough to tell two school laptops
+ * apart and to answer "is this one out of date".
+ */
+export const DeviceRegisterSchema = z.object({
+  label: z.string().max(120).optional(),
+  platform: z.string().max(60).optional(),
+  osVersion: z.string().max(60).optional(),
+  appVersion: z.string().max(40).optional(),
+});
+export type DeviceRegisterType = z.infer<typeof DeviceRegisterSchema>;
+
+export const DeviceHeartbeatSchema = DeviceRegisterSchema;
+export type DeviceHeartbeatType = z.infer<typeof DeviceHeartbeatSchema>;
+
+export const DeviceStatusUpdateSchema = z.object({
+  status: z.enum(["ACTIVE", "BLOCKED", "RETIRED"]),
+});
+export type DeviceStatusUpdateType = z.infer<typeof DeviceStatusUpdateSchema>;
+
+/**
+ * What a device reports after a sync run.
+ *
+ * `FAILED` carries a message so the Control Centre can show why a device is
+ * behind, not merely that it is.
+ */
+export const SyncEntrySchema = z.object({
+  resourceType: z.string().min(1).max(30),
+  resourceId: z.string().min(1).max(120),
+  installedVersion: z.number().int().min(0),
+  status: z.enum(["OK", "PENDING", "FAILED"]).default("OK"),
+  message: z.string().max(500).optional(),
+});
+
+export const SyncReportSchema = z.object({
+  entries: z.array(SyncEntrySchema).min(1).max(500),
+});
+export type SyncReportType = z.infer<typeof SyncReportSchema>;
+
+/**
+ * Content-management fields on a course.
+ *
+ * Separate from `CourseBaseSchema` so the existing create and update endpoints
+ * keep working untouched. Publishing and distribution are a different action
+ * from editing a description, and the spec is explicit about not breaking what
+ * already works.
+ */
+export const CoursePublishSchema = z.object({
+  category: z.enum(["DIGITAL", "ACADEMIC"]).optional(),
+  published: z.boolean().optional(),
+  autoDownload: z.boolean().optional(),
+  /// Omit to leave the version alone; send true to bump it and tell every device
+  /// there is something new to fetch.
+  bumpVersion: z.boolean().optional(),
+});
+export type CoursePublishType = z.infer<typeof CoursePublishSchema>;

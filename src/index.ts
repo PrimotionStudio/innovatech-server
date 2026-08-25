@@ -13,6 +13,8 @@ import Course from "./routes/course.route.js";
 import Manifest from "./routes/manifest.route.js";
 import Practice from "./routes/practice.route.js";
 import User from "./routes/user.route.js";
+import Device from "./routes/device.route.js";
+import Sync from "./routes/sync.route.js";
 
 const app = new Hono({ strict: false }).basePath("/api/v1");
 const isDev = process.env.NODE_ENV !== "production";
@@ -25,7 +27,13 @@ app.use(
   rateLimiter({
     windowMs: 60 * 1000,
     limit: 100,
-    keyGenerator: (c) => c.req.header("authorization") || "anonymous",
+    // Devices authenticate with headers of their own, so without this every
+    // device in the fleet would share the "anonymous" bucket and starve each
+    // other out.
+    keyGenerator: (c) =>
+      c.req.header("authorization") ||
+      c.req.header("x-device-id") ||
+      "anonymous",
   }),
 );
 
@@ -51,6 +59,8 @@ app.route("/courses", Course);
 app.route("/manifests", Manifest);
 app.route("/practices", Practice);
 app.route("/users", User);
+app.route("/devices", Device);
+app.route("/sync", Sync);
 
 app.onError((error, c) => {
   if (error instanceof ApiError) return c.json({ message: error.message }, 400);

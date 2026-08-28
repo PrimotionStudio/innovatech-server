@@ -15,6 +15,7 @@ import Practice from "./routes/practice.route.js";
 import User from "./routes/user.route.js";
 import Device from "./routes/device.route.js";
 import Sync from "./routes/sync.route.js";
+import Insights from "./routes/insights.route.js";
 
 const app = new Hono({ strict: false }).basePath("/api/v1");
 const isDev = process.env.NODE_ENV !== "production";
@@ -61,6 +62,7 @@ app.route("/practices", Practice);
 app.route("/users", User);
 app.route("/devices", Device);
 app.route("/sync", Sync);
+app.route("/insights", Insights);
 
 app.onError((error, c) => {
   if (error instanceof ApiError) return c.json({ message: error.message }, 400);

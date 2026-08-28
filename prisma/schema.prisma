@@ -139,8 +139,118 @@ model Device {
 
   syncStates DeviceSyncState[]
 
+  /// One student profile per installation, upserted from the local profile the
+  /// app sends with its activity. This is what makes a device id answer "who
+  /// is using this machine" in the Control Centre.
+  profile DeviceProfile?
+
+  /// Learning activity reported by the device. Sessions and typed events are
+  /// kept apart from sync state on purpose: sync state answers "does this
+  /// machine have the right content", activity answers "what is this student
+  /// actually doing with it".
+  sessions DeviceSession[]
+  activity DeviceActivity[]
+  practiceAttempts DevicePracticeAttempt[]
+
   @@index([status])
   @@index([lastSeenAt])
+}
+
+/// The student profile linked to one installation, upserted whenever it sends
+/// activity. One-to-one with Device; a machine does not start with one and only
+/// gains it when the app has a local profile to report.
+model DeviceProfile {
+  id String @id @default(uuid())
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  deviceId String @unique
+
+  name String?
+  class String?
+  school String?
+  guardianName String?
+  guardianPhone String?
+  guardianEmail String?
+
+  updatedAt DateTime @updatedAt @default(now())
+}
+
+/// One open of the Kotlead Desktop app. The device records when the window
+/// opened and, when it closes cleanly, when it closed and for how long. A
+/// session that never gets an endedAt is a crash or a forceful exit, and the
+/// next startup finalizes it.
+model DeviceSession {
+  id String @id @default(uuid())
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  deviceId String
+
+  /// Stable per-row id generated on the device. Combined with the device this
+  /// is unique, which is what makes a timed-out-but-actually-received upload
+  /// deduplicate instead of double-counting on the retry.
+  uid String
+
+  startedAt DateTime
+  endedAt DateTime?
+  durationSeconds Int?
+
+  receivedAt DateTime @default(now())
+
+  @@unique([deviceId, uid])
+  @@index([deviceId, startedAt])
+}
+
+/// A typed learning event: opening a course, watching a video, asking the AI
+/// tutor a question, submitting a practice. Generic by design so a new kind of
+/// activity does not need a migration of this table; `payload` carries anything
+/// structured that does not deserve its own column.
+model DeviceActivity {
+  id String @id @default(uuid())
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  deviceId String
+
+  uid String
+
+  eventType String
+  entityType String
+  entityId String
+
+  /// Denormalised display name. The device talks about its content in local ids
+  /// that do not match server uuids, so the name is what insights group by.
+  entityName String?
+
+  occurredAt DateTime
+  durationSeconds Int?
+
+  payload Json?
+
+  receivedAt DateTime @default(now())
+
+  @@unique([deviceId, uid])
+  @@index([deviceId, occurredAt])
+  @@index([eventType])
+}
+
+/// A practice submission, surfaced separately from the event log because it is
+/// the one place correctness lives: how many questions a student got right and
+/// the answers themselves, which is what performance insights are built on.
+model DevicePracticeAttempt {
+  id String @id @default(uuid())
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  deviceId String
+
+  uid String
+
+  practiceTitle String?
+  attemptedAt DateTime
+  correct Int
+  total Int
+  score Int
+
+  answers Json?
+
+  receivedAt DateTime @default(now())
+
+  @@unique([deviceId, uid])
+  @@index([deviceId, attemptedAt])
 }
 
 enum DeviceStatus {

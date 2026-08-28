@@ -127,7 +127,42 @@ export const GetDevice = async (c: Context) => {
   const id = c.req.param("id");
   const device = await prisma.device.findUnique({
     where: { id },
-    include: { syncStates: { orderBy: { updatedAt: "desc" } } },
+    include: {
+      syncStates: { orderBy: { updatedAt: "desc" } },
+      profile: true,
+      sessions: {
+        orderBy: { startedAt: "desc" },
+        take: 50,
+        select: { id: true, uid: true, startedAt: true, endedAt: true, durationSeconds: true },
+      },
+      activity: {
+        orderBy: { occurredAt: "desc" },
+        take: 100,
+        select: {
+          id: true,
+          uid: true,
+          eventType: true,
+          entityType: true,
+          entityId: true,
+          entityName: true,
+          occurredAt: true,
+          durationSeconds: true,
+        },
+      },
+      practiceAttempts: {
+        orderBy: { attemptedAt: "desc" },
+        take: 50,
+        select: {
+          id: true,
+          uid: true,
+          practiceTitle: true,
+          attemptedAt: true,
+          correct: true,
+          total: true,
+          score: true,
+        },
+      },
+    },
   });
   if (!device) throw new ApiError("Device not found", 404);
 

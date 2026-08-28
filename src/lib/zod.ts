@@ -147,6 +147,71 @@ export type SyncReportType = z.infer<typeof SyncReportSchema>;
  * from editing a description, and the spec is explicit about not breaking what
  * already works.
  */
+/**
+ * One student profile, as the desktop app reports it with its activity.
+ * Everything optional and deliberately so: the local profile is itself
+ * optional and the device may never have been configured past installation.
+ */
+export const DeviceProfileSchema = z.object({
+  name: z.string().max(120).optional(),
+  class: z.string().max(120).optional(),
+  school: z.string().max(120).optional(),
+  guardianName: z.string().max(120).optional(),
+  guardianPhone: z.string().max(120).optional(),
+  guardianEmail: z.string().max(120).optional(),
+});
+export type DeviceProfileType = z.infer<typeof DeviceProfileSchema>;
+
+/**
+ * A reported app session. `uid` is a stable per-row id generated on the
+ * device, so a dropped reply followed by a retry cannot double-count a session.
+ */
+export const ActivitySessionSchema = z.object({
+  uid: z.string().min(1).max(80),
+  startedAt: z.coerce.date(),
+  endedAt: z.coerce.date().optional(),
+  durationSeconds: z.number().int().min(0).optional(),
+});
+export type ActivitySessionType = z.infer<typeof ActivitySessionSchema>;
+
+export const ActivityEventSchema = z.object({
+  uid: z.string().min(1).max(80),
+  eventType: z.string().min(1).max(40),
+  entityType: z.string().min(1).max(40),
+  entityId: z.string().min(1).max(120),
+  entityName: z.string().max(200).optional(),
+  occurredAt: z.coerce.date(),
+  durationSeconds: z.number().int().min(0).optional(),
+  payload: z.record(z.string(), z.any()).optional(),
+});
+export type ActivityEventType = z.infer<typeof ActivityEventSchema>;
+
+export const ActivityPracticeAttemptSchema = z.object({
+  uid: z.string().min(1).max(80),
+  practiceTitle: z.string().max(200).optional(),
+  attemptedAt: z.coerce.date(),
+  correct: z.number().int().min(0),
+  total: z.number().int().min(1),
+  score: z.number().int().min(0).max(100),
+  answers: z.array(z.any()).optional(),
+});
+export type ActivityPracticeAttemptType = z.infer<
+  typeof ActivityPracticeAttemptSchema
+>;
+
+/**
+ * What a device sends when it uploads its learning activity. Each collection is
+ * capped so a machine with a long offline stint cannot send an unbounded
+ * payload in one go; the device splits into batches.
+ */
+export const ActivityReportSchema = z.object({
+  profile: DeviceProfileSchema.optional(),
+  sessions: z.array(ActivitySessionSchema).max(500).default([]),
+  events: z.array(ActivityEventSchema).max(500).default([]),
+  practiceAttempts: z.array(ActivityPracticeAttemptSchema).max(500).default([]),
+});
+export type ActivityReportType = z.infer<typeof ActivityReportSchema>;
+
 export const CoursePublishSchema = z.object({
   category: z.enum(["DIGITAL", "ACADEMIC"]).optional(),
   published: z.boolean().optional(),

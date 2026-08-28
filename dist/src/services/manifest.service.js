@@ -14,7 +14,7 @@ export const GetActiveManifest = async (c) => {
     return c.json(manifest);
 };
 export const NewManifest = async (c) => {
-    const data = ManifestSchema.omit({ id: true }).parse(await c.req.json());
+    const data = ManifestSchema.omit({ id: true, datetime: true }).parse(await c.req.json());
     const manifest = await prisma.manifest.create({ data });
     return c.json(manifest);
 };

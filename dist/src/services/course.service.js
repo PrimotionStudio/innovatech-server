@@ -1,5 +1,5 @@
 import { getIncludeParams, prisma } from "../lib/database.js";
-import { CourseBaseSchema, LessonBaseSchema } from "../lib/zod.js";
+import { CourseBaseSchema, CoursePublishSchema, LessonBaseSchema, } from "../lib/zod.js";
 export const GetCourses = async (c) => {
     const courses = await prisma.course.findMany({
         include: getIncludeParams(c),
@@ -23,6 +23,32 @@ export const UpdateCourse = async (c) => {
     const id = c.req.param("id");
     const data = CourseBaseSchema.omit({ id: true }).parse(await c.req.json());
     const course = await prisma.course.update({ where: { id }, data });
+    return c.json(course);
+};
+/**
+ * Publishing and distribution, kept apart from editing a course.
+ *
+ * Editing a description and telling the whole fleet to download something are
+ * different actions with different blast radii, so they are different endpoints.
+ * It also means the existing create and update paths keep working untouched.
+ *
+ * `bumpVersion` is explicit rather than automatic. An automatic bump on every
+ * save would make every typo correction a fleet-wide download, which is exactly
+ * the "download everything every time" behaviour the sync design exists to
+ * avoid.
+ */
+export const PublishCourse = async (c) => {
+    const id = c.req.param("id");
+    const data = CoursePublishSchema.parse(await c.req.json());
+    const course = await prisma.course.update({
+        where: { id },
+        data: {
+            category: data.category,
+            published: data.published,
+            autoDownload: data.autoDownload,
+            ...(data.bumpVersion ? { version: { increment: 1 } } : {}),
+        },
+    });
     return c.json(course);
 };
 export const DeleteCourse = async (c) => {

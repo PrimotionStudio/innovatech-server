@@ -73,7 +73,13 @@ export const ModelName = {
     Manifest: 'Manifest',
     Course: 'Course',
     Lesson: 'Lesson',
-    Practice: 'Practice'
+    Practice: 'Practice',
+    Device: 'Device',
+    DeviceProfile: 'DeviceProfile',
+    DeviceSession: 'DeviceSession',
+    DeviceActivity: 'DeviceActivity',
+    DevicePracticeAttempt: 'DevicePracticeAttempt',
+    DeviceSyncState: 'DeviceSyncState'
 };
 /**
  * Enums
@@ -117,7 +123,12 @@ export const CourseScalarFieldEnum = {
     id: 'id',
     name: 'name',
     description: 'description',
-    imageUrl: 'imageUrl'
+    imageUrl: 'imageUrl',
+    category: 'category',
+    version: 'version',
+    published: 'published',
+    autoDownload: 'autoDownload',
+    updatedAt: 'updatedAt'
 };
 export const LessonScalarFieldEnum = {
     id: 'id',
@@ -127,19 +138,94 @@ export const LessonScalarFieldEnum = {
     content: 'content',
     videoUrl: 'videoUrl',
     videoSize: 'videoSize',
-    videoHash: 'videoHash'
+    videoHash: 'videoHash',
+    version: 'version',
+    updatedAt: 'updatedAt'
 };
 export const PracticeScalarFieldEnum = {
     id: 'id',
     courseId: 'courseId',
     title: 'title',
-    questions: 'questions'
+    questions: 'questions',
+    version: 'version',
+    updatedAt: 'updatedAt'
+};
+export const DeviceScalarFieldEnum = {
+    id: 'id',
+    deviceId: 'deviceId',
+    secretHash: 'secretHash',
+    label: 'label',
+    platform: 'platform',
+    osVersion: 'osVersion',
+    appVersion: 'appVersion',
+    status: 'status',
+    lastSeenAt: 'lastSeenAt',
+    registeredAt: 'registeredAt'
+};
+export const DeviceProfileScalarFieldEnum = {
+    id: 'id',
+    deviceId: 'deviceId',
+    name: 'name',
+    class: 'class',
+    school: 'school',
+    guardianName: 'guardianName',
+    guardianPhone: 'guardianPhone',
+    guardianEmail: 'guardianEmail',
+    updatedAt: 'updatedAt'
+};
+export const DeviceSessionScalarFieldEnum = {
+    id: 'id',
+    deviceId: 'deviceId',
+    uid: 'uid',
+    startedAt: 'startedAt',
+    endedAt: 'endedAt',
+    durationSeconds: 'durationSeconds',
+    receivedAt: 'receivedAt'
+};
+export const DeviceActivityScalarFieldEnum = {
+    id: 'id',
+    deviceId: 'deviceId',
+    uid: 'uid',
+    eventType: 'eventType',
+    entityType: 'entityType',
+    entityId: 'entityId',
+    entityName: 'entityName',
+    occurredAt: 'occurredAt',
+    durationSeconds: 'durationSeconds',
+    payload: 'payload',
+    receivedAt: 'receivedAt'
+};
+export const DevicePracticeAttemptScalarFieldEnum = {
+    id: 'id',
+    deviceId: 'deviceId',
+    uid: 'uid',
+    practiceTitle: 'practiceTitle',
+    attemptedAt: 'attemptedAt',
+    correct: 'correct',
+    total: 'total',
+    score: 'score',
+    answers: 'answers',
+    receivedAt: 'receivedAt'
+};
+export const DeviceSyncStateScalarFieldEnum = {
+    id: 'id',
+    deviceId: 'deviceId',
+    resourceType: 'resourceType',
+    resourceId: 'resourceId',
+    installedVersion: 'installedVersion',
+    status: 'status',
+    message: 'message',
+    updatedAt: 'updatedAt'
 };
 export const SortOrder = {
     asc: 'asc',
     desc: 'desc'
 };
 export const JsonNullValueInput = {
+    JsonNull: JsonNull
+};
+export const NullableJsonNullValueInput = {
+    DbNull: DbNull,
     JsonNull: JsonNull
 };
 export const QueryMode = {

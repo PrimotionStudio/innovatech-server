@@ -7,5 +7,17 @@
 *
 * 🟢 You can import this file directly.
 */
-// This file is empty because there are no enums in the schema.
-export {};
+export const CourseCategory = {
+    DIGITAL: 'DIGITAL',
+    ACADEMIC: 'ACADEMIC'
+};
+export const DeviceStatus = {
+    ACTIVE: 'ACTIVE',
+    BLOCKED: 'BLOCKED',
+    RETIRED: 'RETIRED'
+};
+export const SyncStatus = {
+    OK: 'OK',
+    PENDING: 'PENDING',
+    FAILED: 'FAILED'
+};

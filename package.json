@@ -6,7 +6,8 @@
     "build": "tsc",
     "start": "prisma migrate deploy && node dist/src/index.js",
     "db": "bunx prisma migrate dev --name init && bunx prisma generate && bunx prisma db push",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "import:desktop-content": "tsx scripts/import-desktop-content.ts"
   },
   "dependencies": {
     "@hono/node-server": "^2.0.3",

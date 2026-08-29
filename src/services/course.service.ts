@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import { getIncludeParams, prisma } from "../lib/database.js";
+import { getIncludeParams, getWhereParams, prisma } from "../lib/database.js";
 import {
   CourseBaseSchema,
   CoursePublishSchema,
@@ -8,6 +8,10 @@ import {
 
 export const GetCourses = async (c: Context) => {
   const courses = await prisma.course.findMany({
+    // Supports /courses?where={"published":true} so a client (e.g. the desktop
+    // app's "Refresh Content") can pull, say, every published course.
+    // No query keeps the original behaviour of returning all courses.
+    where: getWhereParams(c),
     include: getIncludeParams(c),
   });
   return c.json(courses);

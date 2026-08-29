@@ -1,5 +1,9 @@
 import { Hono } from "hono";
-import { GetSyncManifest, ReportSyncState } from "../services/sync.service.js";
+import {
+  GetCourseContent,
+  GetSyncManifest,
+  ReportSyncState,
+} from "../services/sync.service.js";
 import { ReportActivity } from "../services/activity.service.js";
 import { DeviceMiddleware } from "../middleware/device.middleware.js";
 
@@ -10,6 +14,7 @@ const Sync = new Hono();
 Sync.use("*", DeviceMiddleware);
 
 Sync.get("/manifest", GetSyncManifest);
+Sync.get("/courses/:id", GetCourseContent);
 Sync.post("/report", ReportSyncState);
 Sync.post("/activity", ReportActivity);
 

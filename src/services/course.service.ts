@@ -84,13 +84,16 @@ export const GetLessonsByCourseId = async (c: Context) => {
 };
 
 export const NewLesson = async (c: Context) => {
-  const data = LessonBaseSchema.omit({ id: true }).parse(await c.req.json());
-  const lesson = await prisma.lesson.create({ data });
+  const id = c.req.param("id");
+  if (!id) throw new Error("Course Id is required");
+  const data = LessonBaseSchema.omit({ id: true,courseId: true }).parse(await c.req.json());
+  const lesson = await prisma.lesson.create({ data:{...data, courseId: id} });
   return c.json(lesson, 201);
 };
 
 export const UpdateLesson = async (c: Context) => {
   const id = c.req.param("id");
+  if (!id) throw new Error("Course Id is required");
   const data = LessonBaseSchema.omit({ id: true }).parse(await c.req.json());
   const lesson = await prisma.lesson.update({ where: { id }, data });
   return c.json(lesson);

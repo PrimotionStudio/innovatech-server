@@ -1,5 +1,24 @@
 import { z } from "zod";
 
+/**
+ * Optional in the sense the desktop client actually means it.
+ *
+ * That client is Rust, and serde serialises `Option::None` as an explicit JSON
+ * `null` rather than by leaving the key out. Zod's `.optional()` accepts a
+ * missing key but rejects an explicit `null`, so a device that simply did not
+ * know its own OS version had its entire request rejected with a 400.
+ *
+ * One mismatch was enough to stop device registration outright, and with it
+ * everything that depends on having credentials: heartbeats, activity upload,
+ * the sync manifest and content download. Accepting null here repairs every
+ * installation already in the field without shipping a new desktop build.
+ *
+ * Null is normalised back to undefined, so every consumer below, Prisma
+ * included, sees exactly what it saw before.
+ */
+const orNull = <T extends z.ZodType>(schema: T) =>
+  schema.nullish().transform((value) => value ?? undefined);
+
 export const AdminSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -105,10 +124,10 @@ export const PracticeSchema: z.ZodType<PracticeType> = PracticeBaseSchema.extend
  * apart and to answer "is this one out of date".
  */
 export const DeviceRegisterSchema = z.object({
-  label: z.string().max(120).optional(),
-  platform: z.string().max(60).optional(),
-  osVersion: z.string().max(60).optional(),
-  appVersion: z.string().max(40).optional(),
+  label: orNull(z.string().max(120)),
+  platform: orNull(z.string().max(60)),
+  osVersion: orNull(z.string().max(60)),
+  appVersion: orNull(z.string().max(40)),
 });
 export type DeviceRegisterType = z.infer<typeof DeviceRegisterSchema>;
 
@@ -131,7 +150,7 @@ export const SyncEntrySchema = z.object({
   resourceId: z.string().min(1).max(120),
   installedVersion: z.number().int().min(0),
   status: z.enum(["OK", "PENDING", "FAILED"]).default("OK"),
-  message: z.string().max(500).optional(),
+  message: orNull(z.string().max(500)),
 });
 
 export const SyncReportSchema = z.object({
@@ -153,12 +172,12 @@ export type SyncReportType = z.infer<typeof SyncReportSchema>;
  * optional and the device may never have been configured past installation.
  */
 export const DeviceProfileSchema = z.object({
-  name: z.string().max(120).optional(),
-  class: z.string().max(120).optional(),
-  school: z.string().max(120).optional(),
-  guardianName: z.string().max(120).optional(),
-  guardianPhone: z.string().max(120).optional(),
-  guardianEmail: z.string().max(120).optional(),
+  name: orNull(z.string().max(120)),
+  class: orNull(z.string().max(120)),
+  school: orNull(z.string().max(120)),
+  guardianName: orNull(z.string().max(120)),
+  guardianPhone: orNull(z.string().max(120)),
+  guardianEmail: orNull(z.string().max(120)),
 });
 export type DeviceProfileType = z.infer<typeof DeviceProfileSchema>;
 
@@ -169,8 +188,8 @@ export type DeviceProfileType = z.infer<typeof DeviceProfileSchema>;
 export const ActivitySessionSchema = z.object({
   uid: z.string().min(1).max(80),
   startedAt: z.coerce.date(),
-  endedAt: z.coerce.date().optional(),
-  durationSeconds: z.number().int().min(0).optional(),
+  endedAt: orNull(z.coerce.date()),
+  durationSeconds: orNull(z.number().int().min(0)),
 });
 export type ActivitySessionType = z.infer<typeof ActivitySessionSchema>;
 
@@ -179,21 +198,21 @@ export const ActivityEventSchema = z.object({
   eventType: z.string().min(1).max(40),
   entityType: z.string().min(1).max(40),
   entityId: z.string().min(1).max(120),
-  entityName: z.string().max(200).optional(),
+  entityName: orNull(z.string().max(200)),
   occurredAt: z.coerce.date(),
-  durationSeconds: z.number().int().min(0).optional(),
-  payload: z.record(z.string(), z.any()).optional(),
+  durationSeconds: orNull(z.number().int().min(0)),
+  payload: orNull(z.record(z.string(), z.any())),
 });
 export type ActivityEventType = z.infer<typeof ActivityEventSchema>;
 
 export const ActivityPracticeAttemptSchema = z.object({
   uid: z.string().min(1).max(80),
-  practiceTitle: z.string().max(200).optional(),
+  practiceTitle: orNull(z.string().max(200)),
   attemptedAt: z.coerce.date(),
   correct: z.number().int().min(0),
   total: z.number().int().min(1),
   score: z.number().int().min(0).max(100),
-  answers: z.array(z.any()).optional(),
+  answers: orNull(z.array(z.any())),
 });
 export type ActivityPracticeAttemptType = z.infer<
   typeof ActivityPracticeAttemptSchema
@@ -205,7 +224,7 @@ export type ActivityPracticeAttemptType = z.infer<
  * payload in one go; the device splits into batches.
  */
 export const ActivityReportSchema = z.object({
-  profile: DeviceProfileSchema.optional(),
+  profile: orNull(DeviceProfileSchema),
   sessions: z.array(ActivitySessionSchema).max(500).default([]),
   events: z.array(ActivityEventSchema).max(500).default([]),
   practiceAttempts: z.array(ActivityPracticeAttemptSchema).max(500).default([]),

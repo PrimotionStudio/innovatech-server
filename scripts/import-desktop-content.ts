@@ -32,6 +32,28 @@
  *
  * # Imported unpublished, deliberately
  *
+ * # Practices and the courses they point at
+ *
+ * 62 of the 64 practices reference local course ids that have no row in the
+ * desktop `course` table at all: `ts_mathematics_0` through `ts_geography_10`,
+ * and `csv_1` through `csv_20`. Only 4 real courses exist. Left alone, every
+ * one of those practices would import with `courseId: null` and the subject
+ * grouping would be gone, which is a quiet loss of structure rather than a
+ * visible failure.
+ *
+ * The `ts_` family carries its subject twice: in the id, and again as the title
+ * prefix (`ts_mathematics_4` is titled "Mathematics - Geometry & Shapes").
+ * Where those two agree, the subject is read from the data rather than guessed,
+ * and a course is created for it.
+ *
+ * The `csv_` family carries no such signal. The titles are standalone topics
+ * with no shared prefix, so there is nothing to derive a name from and the
+ * script refuses to invent one. Those stay unattached and are reported as a
+ * group; `--ungrouped-course "Name"` attaches them to a course of that name if
+ * somebody decides what it should be.
+ *
+ * # Imported unpublished, deliberately
+ *
  * Every course lands with `published: false` and `autoDownload: false`.
  * Importing them as live would push the entire back catalogue to every
  * installation in the field the moment this runs. Publishing is a decision
@@ -52,6 +74,7 @@ const { values } = parseArgs({
   options: {
     sqlite: { type: "string" },
     apply: { type: "boolean", default: false },
+    "ungrouped-course": { type: "string" },
   },
 });
 
@@ -79,6 +102,34 @@ function readAll(db: DatabaseSync, table: string): Row[] {
 }
 
 const str = (v: unknown) => (typeof v === "string" ? v : v == null ? "" : String(v));
+
+/** Lowercased letters and digits only, so " & ", "(", "-" and case stop mattering. */
+const squash = (v: string) => v.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+/**
+ * The subject a practice belongs to, or null when the data does not say.
+ *
+ * Two independent signals have to agree: the slug inside a `ts_<slug>_<n>`
+ * local course id, and the prefix before " - " in the title. Requiring both is
+ * what makes this reading the data rather than guessing at it, and it is why
+ * the `csv_` family correctly comes back null instead of being forced into some
+ * invented bucket.
+ *
+ * The title supplies the name, because it is the form written for a person:
+ * "English Language & Literature" rather than "english".
+ */
+function subjectFor(localCourseId: string, title: string): string | null {
+  const id = /^ts_([a-z0-9]+)_\d+$/.exec(localCourseId);
+  if (!id) return null;
+
+  const separator = title.indexOf(" - ");
+  if (separator === -1) return null;
+
+  const subject = title.slice(0, separator).trim();
+  if (!subject) return null;
+
+  return squash(subject).startsWith(squash(id[1]!)) ? subject : null;
+}
 
 async function main() {
   console.log(`Reading ${values.sqlite}`);
@@ -169,15 +220,84 @@ async function main() {
     console.log(`        lesson  ${title}`);
   }
 
+  // Practices first need somewhere to live. Every subject the data actually
+  // names gets a course, created once here rather than inside the loop, so 11
+  // Mathematics practices produce one course and not eleven.
+  const courseIdBySubject = new Map<string, string>();
+  const subjects = new Set<string>();
+  for (const row of practices) {
+    const subject = subjectFor(str(row.course_id), str(row.title));
+    if (subject) subjects.add(subject);
+  }
+
+  for (const subject of [...subjects].sort()) {
+    const existing = await prisma.course.findFirst({ where: { name: subject } });
+    if (apply) {
+      const saved =
+        existing ??
+        (await prisma.course.create({
+          data: {
+            name: subject,
+            description: `${subject} practice questions.`,
+            imageUrl: "",
+            category: "ACADEMIC",
+            published: false,
+            autoDownload: false,
+          },
+        }));
+      courseIdBySubject.set(subject, saved.id);
+    } else {
+      courseIdBySubject.set(subject, existing?.id ?? `(new) ${subject}`);
+    }
+    console.log(`${existing ? "reuse " : "create"} course  ${subject}  (from practice subjects)`);
+  }
+
+  // Named on the command line or not at all. See the note at the top: there is
+  // nothing in the csv_ rows to derive a name from, so this is the one place a
+  // human decision is required rather than inferred.
+  const ungroupedName = values["ungrouped-course"]?.trim();
+  let ungroupedCourseId: string | null = null;
+  if (ungroupedName) {
+    const existing = await prisma.course.findFirst({ where: { name: ungroupedName } });
+    if (apply) {
+      const saved =
+        existing ??
+        (await prisma.course.create({
+          data: {
+            name: ungroupedName,
+            description: "",
+            imageUrl: "",
+            category: "ACADEMIC",
+            published: false,
+            autoDownload: false,
+          },
+        }));
+      ungroupedCourseId = saved.id;
+    } else {
+      ungroupedCourseId = existing?.id ?? `(new) ${ungroupedName}`;
+    }
+    console.log(`${existing ? "reuse " : "create"} course  ${ungroupedName}  (--ungrouped-course)`);
+  }
+
+  console.log("");
+
+  const stillUngrouped = new Set<string>();
+
   for (const row of practices) {
     const localCourseId = str(row.course_id);
-    const courseId = courseIdByLocalId.get(localCourseId) ?? null;
     const title = str(row.title);
+    const subject = subjectFor(localCourseId, title);
+
+    // Three sources, in order of how well the data supports them: a real local
+    // course, a subject both the id and the title agree on, then whatever the
+    // operator named on the command line.
+    const courseId =
+      courseIdByLocalId.get(localCourseId) ??
+      (subject ? courseIdBySubject.get(subject)! : null) ??
+      ungroupedCourseId;
 
     if (localCourseId && !courseId) {
-      unmapped.push(
-        `practice "${title}" points at local course ${localCourseId}, which was not imported`,
-      );
+      stillUngrouped.add(localCourseId);
     }
 
     let questions: unknown;
@@ -212,6 +332,15 @@ async function main() {
       }
     }
     console.log(`        practice ${title} (${count} questions)`);
+  }
+
+  if (stillUngrouped.size > 0) {
+    const ids = [...stillUngrouped].sort();
+    unmapped.push(
+      `${ids.length} local course id(s) had no course and no subject in the data, so ` +
+        `their practices imported unattached: ${ids.join(", ")}. ` +
+        `Re-run with --ungrouped-course "Some Name" to put them under one course.`,
+    );
   }
 
   db.close();

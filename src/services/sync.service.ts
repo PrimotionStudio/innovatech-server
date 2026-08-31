@@ -1,5 +1,6 @@
 import type { Context } from "hono";
 import { prisma } from "../lib/database.js";
+import { ApiError } from "../lib/errorHandler.js";
 import { SyncReportSchema } from "../lib/zod.js";
 
 /**
@@ -130,6 +131,64 @@ export const GetSyncManifest = async (c: Context) => {
  * says so and why, and that surfaces in the Control Centre rather than the
  * device silently appearing up to date.
  */
+/**
+ * The full body of one course, for a device that has decided it needs it.
+ *
+ * Deliberately not part of the manifest. The manifest is polled every fifteen
+ * minutes by every installation, so it carries version numbers and nothing else;
+ * a lesson's `content` is several paragraphs and multiplying that by every
+ * course and every device turns a cheap poll into a large one for information
+ * that almost never changes.
+ *
+ * So the manifest says what changed, and this says what it now is. A device
+ * calls this only for courses whose version moved.
+ */
+export const GetCourseContent = async (c: Context) => {
+  const id = c.req.param("id");
+
+  const course = await prisma.course.findUnique({
+    where: { id },
+    include: {
+      lessons: { orderBy: { title: "asc" } },
+      practices: { orderBy: { title: "asc" } },
+    },
+  });
+
+  if (!course) throw new ApiError("Course not found", 404);
+
+  // An unpublished course is invisible to devices everywhere else, and this
+  // would be the hole in that if it did not check. Returning 404 rather than 403
+  // keeps it consistent with "this course does not exist as far as you are
+  // concerned".
+  if (!course.published) throw new ApiError("Course not found", 404);
+
+  return c.json({
+    id: course.id,
+    name: course.name,
+    description: course.description,
+    imageUrl: course.imageUrl,
+    category: course.category,
+    version: course.version,
+    updatedAt: course.updatedAt,
+    lessons: course.lessons.map((lesson) => ({
+      id: lesson.id,
+      title: lesson.title,
+      summary: lesson.summary,
+      content: lesson.content,
+      videoUrl: lesson.videoUrl,
+      videoSize: lesson.videoSize,
+      videoHash: lesson.videoHash,
+      version: lesson.version,
+    })),
+    practices: course.practices.map((practice) => ({
+      id: practice.id,
+      title: practice.title,
+      questions: practice.questions,
+      version: practice.version,
+    })),
+  });
+};
+
 export const ReportSyncState = async (c: Context) => {
   const device = c.get("device");
   const { entries } = SyncReportSchema.parse(await c.req.json());

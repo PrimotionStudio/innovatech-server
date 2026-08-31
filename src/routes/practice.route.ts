@@ -4,6 +4,7 @@ import {
   GetPractices,
   NewPractice,
   UpdatePractice,
+  BulkImportPractice,
 } from "../services/practice.service.js";
 import { AuthMiddleware } from "../middleware/auth.middleware.js";
 
@@ -14,6 +15,8 @@ Practice.get("/", GetPractices);
 Practice.use(AuthMiddleware);
 
 Practice.post("/", NewPractice);
+
+Practice.post("/bulk-import", BulkImportPractice);
 
 Practice.patch("/:id", UpdatePractice);
 
